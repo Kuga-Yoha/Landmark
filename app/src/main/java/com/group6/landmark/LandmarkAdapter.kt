@@ -1,6 +1,5 @@
 package com.group6.landmark
 
-
 import Landmark
 import android.content.Context
 import android.content.Intent

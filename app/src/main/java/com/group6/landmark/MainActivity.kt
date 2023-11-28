@@ -1,6 +1,4 @@
-// MainActivity.kt
 package com.group6.landmark
-
 
 import android.Manifest
 import android.content.Intent

@@ -1,4 +1,3 @@
-// LandmarkTypeAdapter.kt
 package com.group6.landmark
 
 import android.content.Context

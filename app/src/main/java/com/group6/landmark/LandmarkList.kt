@@ -15,7 +15,8 @@ class LandmarkList : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_landmark_list)
 
-        val type = intent.getStringExtra("type_of_landmark") as String
+        val type = intent.getStringExtra("type_of_landmark") ?: ""
+
 
 
         recyclerView = findViewById(R.id.recycler_view_landmark)
