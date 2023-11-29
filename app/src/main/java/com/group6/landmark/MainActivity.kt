@@ -1,43 +1,206 @@
 package com.group6.landmark
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-class MainActivity : AppCompatActivity(), LandmarkTypeAdapter.OnItemClickListener {
+class MainActivity : AppCompatActivity() {
+
+    private val LOCATION_PERMISSION_REQUEST_CODE = 100
+    private lateinit var lTypeRecyclerView: RecyclerView
+    private lateinit var lTypeAdapter: LandmarkTypeAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val landmarkTypes = listOf("Old Buildings", "Museums", "Stadiums", "Attractions")
+        lTypeRecyclerView = findViewById(R.id.type_recycler_view)
+        lTypeRecyclerView.layoutManager = LinearLayoutManager(this)
 
-        val recyclerView: RecyclerView = findViewById(R.id.recyclerViewLandmarkTypes)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = LandmarkTypeAdapter(landmarkTypes, this)
+        lTypeAdapter = LandmarkTypeAdapter(this)
+        lTypeRecyclerView.adapter = lTypeAdapter
+
+        checkLocationPermission()
     }
 
-    override fun onItemClick(type: String) {
-        val landmarks = when (type) {
-            "Old Buildings" -> listOf(
-                Landmark("Casa Loma", "Old Building", "1 Austin Terrace, Toronto, ON", 43.6780, -79.4094, R.drawable.casa_loma)
-            )
-            "Museums" -> listOf(
-                Landmark("Royal Ontario Museum", "Museum", "100 Queen's Park, Toronto, ON", 43.6677, -79.3948, R.drawable.rom)
-            )
-            "Stadiums" -> listOf(
-                Landmark("Scotiabank Arena", "Stadium", "40 Bay St, Toronto, ON", 43.6435, -79.3791, R.drawable.scotiabank_arena)
-            )
-            "Attractions" -> listOf(
-                Landmark("CN Tower", "Attraction", "301 Front St W, Toronto, ON", 43.6426, -79.3871, R.drawable.cn_tower)
-            )
-            else -> emptyList()
-        }
 
-        val intent = Intent(this, LandmarkTypeActivity::class.java)
-        intent.putParcelableArrayListExtra("landmarks", ArrayList(landmarks))
-        startActivity(intent)
+    override fun onResume() {
+        super.onResume()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            //Toast.makeText(this,"Granted",Toast.LENGTH_LONG).show()
+
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+
+
+        }
+    }
+
+    private fun checkLocationPermission() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            ) {
+
+                AlertDialog.Builder(this)
+                    .setTitle("Location Permission Needed")
+                    .setMessage("This app needs the Location permission, please accept to use location functionality")
+                    .setPositiveButton(
+                        "OK"
+                    ) { _, _ ->
+                        //Prompt the user once explanation has been shown
+                        requestLocationPermission()
+                    }
+                    .create()
+                    .show()
+            } else {
+                // No explanation needed, we can request the permission.
+                requestLocationPermission()
+            }
+        } else {
+            checkBackgroundLocation()
+        }
+    }
+
+    private fun checkBackgroundLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestBackgroundLocationPermission()
+        }
+    }
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ),
+            MY_PERMISSIONS_REQUEST_LOCATION
+        )
+    }
+
+    private fun requestBackgroundLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ),
+                MY_PERMISSIONS_REQUEST_BACKGROUND_LOCATION
+            )
+        } else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                MY_PERMISSIONS_REQUEST_LOCATION
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            MY_PERMISSIONS_REQUEST_LOCATION -> {
+
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+
+                    if (ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+
+                        // Now check background location
+                        checkBackgroundLocation()
+                    }
+
+                } else {
+
+
+                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show()
+
+
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(
+                            this,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        )
+                    ) {
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", this.packageName, null),
+                            ),
+                        )
+                    }
+                }
+                return
+            }
+            MY_PERMISSIONS_REQUEST_BACKGROUND_LOCATION -> {
+
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+
+                    if (ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        Toast.makeText(
+                            this,
+                            "Granted Background Location Permission",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } else {
+
+
+                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show()
+                }
+                return
+
+            }
+        }
+    }
+
+    companion object {
+        private const val MY_PERMISSIONS_REQUEST_LOCATION = 99
+        private const val MY_PERMISSIONS_REQUEST_BACKGROUND_LOCATION = 66
     }
 }
